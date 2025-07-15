@@ -18,6 +18,13 @@ import (
 	"github.com/google/uuid"
 )
 
+type VideoInfo struct {
+	Streams []struct {
+		Width  int `json:"width"`
+		Height int `json:"height"`
+	} `json:"streams"`
+}
+
 func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request) {
 	videoIDString := r.PathValue("videoID")
 	videoID, err := uuid.Parse(videoIDString)
@@ -88,12 +95,18 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	aspectRatio, err := getVideoAspectRatio(temp_file.Name())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error getting video aspect ratio", err)
+		return
+	}
+
 	nameBytes := make([]byte, 32)
 	rand.Read(nameBytes)
 	randomName := base64.RawURLEncoding.EncodeToString(nameBytes)
 
 	extension := strings.Split(mediaType, "/")[1]
-	filekey := strings.Join([]string{randomName, extension}, ".")
+	filekey := aspectRatio + "/" + strings.Join([]string{randomName, extension}, ".")
 
 	putObjParams := s3.PutObjectInput{
 		Bucket:      &cfg.s3Bucket,
