@@ -2,15 +2,9 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"math"
 	"os/exec"
-	"strings"
-	"time"
-
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/database"
 )
 
 func getVideoAspectRatio(filepath string) (string, error) {
@@ -55,34 +49,4 @@ func processVideoForFastStart(filepath string) (string, error) {
 	}
 
 	return outputPath, nil
-}
-
-func generatePresignedURL(s3Client *s3.Client, bucket, key string, expireTime time.Duration) (string, error) {
-	presignClient := s3.NewPresignClient(s3Client)
-	params := s3.GetObjectInput{
-		Bucket: &bucket,
-		Key:    &key,
-	}
-
-	signedURL, err := presignClient.PresignGetObject(context.Background(), &params, s3.WithPresignExpires(expireTime))
-	if err != nil {
-		return "", err
-	}
-
-	return signedURL.URL, nil
-}
-
-func (cfg *apiConfig) dbVideoToSignedVideo(video database.Video) (database.Video, error) {
-	params := strings.Split(*video.VideoURL, ",")
-	bucket := params[0]
-	key := params[1]
-
-	newURL, err := generatePresignedURL(cfg.s3Client, bucket, key, 20*time.Minute)
-	if err != nil {
-		return database.Video{}, err
-	}
-
-	video.VideoURL = &newURL
-
-	return video, nil
 }

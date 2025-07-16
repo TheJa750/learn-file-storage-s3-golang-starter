@@ -131,10 +131,11 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	cfg.s3Client.PutObject(context.Background(), &putObjParams)
 
 	stringsForURL := []string{
-		cfg.s3Bucket,
+		"https:/",
+		cfg.s3CfDistribution,
 		filekey,
 	}
-	vidURL := strings.Join(stringsForURL, ",")
+	vidURL := strings.Join(stringsForURL, "/")
 
 	video.VideoURL = &vidURL
 
@@ -144,11 +145,5 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	presignedVideo, err := cfg.dbVideoToSignedVideo(video)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Error generating presigned URL", err)
-		return
-	}
-
-	respondWithJSON(w, http.StatusOK, presignedVideo)
+	respondWithJSON(w, http.StatusOK, video)
 }
